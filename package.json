@@ -1,0 +1,27 @@
+{
+  "name": "devtinder",
+  "version": "1.0.0",
+  "description": "Nodejs Backend with mongodb , express",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pateljaykumar2305/DevTinder.git"
+  },
+  "author": "Jaypatel",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pateljaykumar2305/DevTinder/issues"
+  },
+  "homepage": "https://github.com/pateljaykumar2305/DevTinder#readme",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "mongodb": "^6.15.0",
+    "nodemon": "^3.1.0"
+  }
+}
