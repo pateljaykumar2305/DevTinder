@@ -59,27 +59,27 @@ app.get('/allUsers' , async (req, res) => {
 })
 
 app.patch('/updateUser', async (req, res) => {
-    const { id, firstName, lastName, email, password, phone, photoURL, about, skills, age, gender } = req.body;
+    const { _id, ...data } = req.body;
+    console.log('Request Id:', _id);
     console.log('Request body:', req.body);
-    if (!id) {
+    if (!_id) {
         return res.status(400).json({ message: 'ID is required' });
+    }
+
+    isAllowed = [ "_id" , "photoURL" , "about", "skills", "age"];
+
+    const isUpdateAllowed = Object.keys(data).every((key) => {
+        return isAllowed.includes(key);
+    }
+    );
+
+    if (!isUpdateAllowed) {
+        throw new error ({ message: 'Update is not allowed' });
     }
 
     try {
         const user = await User.findByIdAndUpdate(
-            id,
-            {
-                firstName,
-                lastName,
-                email,
-                password,
-                phone,
-                photoURL,
-                about,
-                skills,
-                age,
-                gender
-            },
+            _id, data, 
             { new: true }
         );
 
@@ -89,7 +89,7 @@ app.patch('/updateUser', async (req, res) => {
 
         res.status(200).json({ message: 'User updated successfully', user });
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ error: error.message });
     }
 });
 
