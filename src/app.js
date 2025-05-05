@@ -1,96 +1,32 @@
 const express = require('express');
 require('./config/database.js');
 const User = require('./models/userSchema.js');
+const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
-app.post('/signup', async (req, res) => {
-    const { firstName, lastName, email, password, phone, photoURL, about, skills, age, gender } = req.body;
-    console.log('Request body:', req.body);
+const authRouter = require('./routes/auth.js');
+const profileRouter = require('./routes/profile.js');
+const requestRouter = require('./routes/request.js');
 
-    if (!firstName || !lastName || !email || !password || !phone) {
-        return res.status(400).json({ message: 'All fields are required' });
-    }
 
-    try {
-        const user = new User({
-            firstName,
-            lastName,
-            email,
-            password,
-            phone,
-            photoURL,
-            about,
-            skills,
-            age,
-            gender
-        });
 
-        const savedUser = await user.save();
-        console.log('Saved user:', savedUser);
+app.use('/auth', authRouter);
+app.use('/profile', profileRouter);
+app.use('/request', requestRouter);
 
-        res.status(201).json({ message: 'User created successfully', user: savedUser });
-    } catch (error) {
-        if (error.code === 11000) { // Duplicate key error
-            return res.status(400).json({ message: 'Email already exists' });
-        }
-        res.status(500).json(error.message);
-    }
-});
+app.use((err, req, res, next) => {
+    console.error('Error:', err.message); // Log the error for debugging
 
-app.post('/login' , async (req , res) => {
-    const {email , password} = req.body;
-    console.log('Request body:', req.body);
-
-    if (!email || !password) {
-        return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    const user = await User.findOne({ email : email , password : password});
-    res.send(user);
-})
-
-app.get('/allUsers' , async (req, res) => {
-    const users = await User.find();
-    console.log('All users:', users);
-    res.send(users);    
-})
-
-app.patch('/updateUser', async (req, res) => {
-    const { _id, ...data } = req.body;
-    console.log('Request Id:', _id);
-    console.log('Request body:', req.body);
-    if (!_id) {
-        return res.status(400).json({ message: 'ID is required' });
-    }
-
-    isAllowed = [ "_id" , "photoURL" , "about", "skills", "age"];
-
-    const isUpdateAllowed = Object.keys(data).every((key) => {
-        return isAllowed.includes(key);
-    }
-    );
-
-    if (!isUpdateAllowed) {
-        throw new error ({ message: 'Update is not allowed' });
-    }
-
-    try {
-        const user = await User.findByIdAndUpdate(
-            _id, data, 
-            { new: true }
-        );
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.status(200).json({ message: 'User updated successfully', user });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Internal Server Error',
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined, // Show stack trace only in development
+    });
 });
 
 app.listen(3000, () => {

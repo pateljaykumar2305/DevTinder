@@ -1,26 +1,31 @@
-const adminAuth = ('/admin', (req, res, next) => {
+const jwt = require('jsonwebtoken');
+const User = require('../models/userSchema');
 
-    console.log('Authorization middleware');
+const userAuth =  async (req, res, next) => {
+   
+    const token = req.cookies.token;
+    console.log('Token from cookies:', req.cookies);
 
-    const token = "1234";
-    if(token !== '1234') {
+    if (!token) {
         return res.status(401).json({ message: 'Unauthorized' });
-    }   
-    else{
+    }
+
+    try{
+
+        const decoded = await jwt.verify(token, "DefaultSecretKey");
+
+        const user = await User.findById(decoded._id);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        req.user = user;
         next();
     }
-});
-
-const userAuth = ('/user', (req, res, next) => {
-    console.log('User authorization middleware');
-
-    const userToken = 'user-1234';
-    console.log(userToken);
-    if (!userToken || userToken !== 'user-1234') {
-        return res.status(403).json({ message: 'Forbidden: Invalid or missing token' });
-    } else {
-        next();
+    catch (error) {
+        console.error('Error in userAuth middleware:', error.message);
+        return res.status(401).json({ message: 'Unauthorized: Invalid or expired token' });
     }
-});
 
-module.exports = {adminAuth , userAuth};
+};
+
+module.exports = { userAuth};
