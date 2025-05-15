@@ -50,14 +50,14 @@ profileRouter.get('/profile/edit', userAuth, async (req, res) => {
 
 
 
-profileRouter.get('/allUsers' , async (req, res) => {
+profileRouter.get('/profile/allUsers' , async (req, res) => {
     const users = await User.find();
     console.log('All users:', users);
-    res.send(users);    
+    return res.send(users);    
 })
 
 // Update the User
-profileRouter.patch('/updateUser', async (req, res) => {
+profileRouter.patch('/profile/updateUser', async (req, res) => {
     const { _id, ...data } = req.body;
     console.log('Request Id:', _id);
     console.log('Request body:', req.body);
@@ -92,7 +92,7 @@ profileRouter.patch('/updateUser', async (req, res) => {
     }
 });
 
-profileRouter.delete('/deleteUser', async (req, res) => { 
+profileRouter.delete('/profile/deleteUser', async (req, res) => { 
     const { _id } = req.body;
     console.log('Request Id:', _id);
     console.log('Request body:', req.body);

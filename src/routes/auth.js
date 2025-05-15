@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const User  = require('../models/userSchema');
 
 
-authRouter.post('/signup', async (req, res, next) => {
+authRouter.post('/auth/signup', async (req, res, next) => {
     const { firstName, lastName, email, password, phone, photoURL, about, skills, age, gender } = req.body;
     console.log('Request body:', req.body);
 
@@ -29,7 +29,7 @@ authRouter.post('/signup', async (req, res, next) => {
     }
 });
 
-authRouter.post('/createBulkUsers', async (req, res) => {
+authRouter.post('/auth/createBulkUsers', async (req, res) => {
     const { users } = req.body;
     console.log('Request body:', req.body);
 
@@ -50,7 +50,7 @@ authRouter.post('/createBulkUsers', async (req, res) => {
 });
 
 
-authRouter.post('/login' , async (req , res) => {
+authRouter.post('/auth/login' , async (req , res) => {
     const {email , password} = req.body;
     console.log('Request body:', req.body);
 
@@ -85,12 +85,12 @@ authRouter.post('/login' , async (req , res) => {
     }
 })
 
-authRouter.post('/logout', (req, res) => {
+authRouter.post('/auth/logout', (req, res) => {
     res.clearCookie('token');
     res.status(200).json({ message: 'Logout successful' });
 });
 
-authRouter.post('/forgotPassword', async (req, res) => {
+authRouter.post('/auth/forgotPassword', async (req, res) => {
     const { email } = req.body;
     console.log('Request body:', req.body);
 
