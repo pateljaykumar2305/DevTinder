@@ -9,58 +9,57 @@ requestRouter.post("/request/send/:status/:toUserID", userAuth, async (req, res)
     
     
 
-    try{
-         const fromUserID = req.user._id;
-         const toUserID = req.params.toUserID;
-         const status = req.params.status;
-         
-         const allowedStatus = ["ignore", "interested"];
+    try {
+        const fromUserID = req.user._id;
+        const toUserID = req.params.toUserID;
+        const status = req.params.status;
 
-         if(!allowedStatus.includes(status))
-         {
-            res.status(404).json({message : "Invalid status type :" + status});
-         }
+        const allowedStatus = ["ignore", "interested", "blocked"];
 
-         const user = await User.findById(toUserID);
-            if (!user) {
-                return res.status(404).json({ message: 'User not found' });
-            }
+        if (!allowedStatus.includes(status)) {
+            return res.status(404).json({ message: "Invalid status type: " + status });
+        }
 
-         const existingConnection = await ConnectionRequest.findOne({
-            $or : [
-                {fromUserID , toUserID},   
-                {fromUserID: toUserID, toUserID: fromUserID}
+        const user = await User.findById(toUserID);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const existingConnection = await ConnectionRequest.findOne({
+            $or: [
+                { fromUserID, toUserID },
+                { fromUserID: toUserID, toUserID: fromUserID }
             ]
-         })
+        });
 
-         if(existingConnection)
-         {
-            return res.status(404).json({message : "Connection request already exists"});
-         }
+        if (existingConnection) {
+            if (existingConnection.status === "blocked") {
+                return res.status(403).json({ message: "You cannot send a connection request to a blocked user" });
+            }
+            return res.status(404).json({ message: "Connection request already exists" });
+        }
 
-         if(fromUserID == toUserID)
-         {
-            return res.status(404).json({message : "You cannot send connection request to yourself"});
-         }
+        if (fromUserID == toUserID) {
+            return res.status(404).json({ message: "You cannot send a connection request to yourself" });
+        }
 
-         const connectionRequest = await ConnectionRequest({
-             fromUserID,
-             toUserID,
-             status
-         });
+        const connectionRequest = new ConnectionRequest({
+            fromUserID,
+            toUserID,
+            status
+        });
 
-         const data = await connectionRequest.save();
+        const data = await connectionRequest.save();
 
-         return res.status(200).json({
-             message: "Connection request sent successfully",
-             data
-         });    
-       
-    }catch(error){
-        console.error('Error in /request/send/interested:', error.message);
+        return res.status(200).json({
+            message: "Connection request sent successfully",
+            data
+        });
+    } catch (error) {
+        console.error('Error in /request/send/:status/:toUserID:', error.message);
         res.status(500).json({ message: 'Internal Server Error' });
     }
-
+    
     res.send(user.firstName + " sent the connect request!");
 });
 
@@ -82,17 +81,21 @@ requestRouter.post("/request/view/:status/:requestID", userAuth, async (req, res
         const { status , requestID } = req.params;
         console.log('Request ID:', requestID);
         console.log('Status:', status);
-    
-        const allowedStatus = ["accepted", "rejected"];
+
+
+        const allowedStatus = ["accepted", "rejected" , "blocked"];
         if(!allowedStatus.includes(status))
         {
             res.status(404).json({message : "status type should not be the :" + status});
         }
         const connectionRequest = await ConnectionRequest.findOne({
-            fromUserID: loggedInUser._id,
-            toUserID: requestID,
-            status: "interested"
+            $or: [
+                { fromUserID: loggedInUser._id, toUserID: requestID, status: "interested" },
+                { fromUserID: requestID, toUserID: loggedInUser._id, status: "interested" }
+            ]
         })
+
+        console.log('Connection request:', connectionRequest);
 
         if(!connectionRequest)
         {
