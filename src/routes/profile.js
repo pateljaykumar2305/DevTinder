@@ -57,7 +57,7 @@ profileRouter.get('/profile/allUsers' , async (req, res) => {
 })
 
 // Update the User
-profileRouter.patch('/profile/updateUser', async (req, res) => {
+profileRouter.patch('/profile/updateUser', userAuth , async (req, res) => {
     const { _id, ...data } = req.body;
     console.log('Request Id:', _id);
     console.log('Request body:', req.body);
@@ -92,7 +92,7 @@ profileRouter.patch('/profile/updateUser', async (req, res) => {
     }
 });
 
-profileRouter.delete('/profile/deleteUser', async (req, res) => { 
+profileRouter.delete('/profile/deleteUser', userAuth , async (req, res) => { 
     const { _id } = req.body;
     console.log('Request Id:', _id);
     console.log('Request body:', req.body);
