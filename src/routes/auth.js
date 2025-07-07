@@ -50,8 +50,12 @@ authRouter.post('/auth/createBulkUsers', async (req, res) => {
     }
 });
 
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+// It's recommended to store secrets in environment variables for security.
+// If JWT_SECRET is not set, log a warning and use a default (not for production).
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.warn('Warning: JWT_SECRET is not set in environment variables. Using default secret. DO NOT use this in production!');
+}
 const JWT_EXPIRES_IN = '15m'; // short expiry for demonstration
 const JWT_REFRESH_EXPIRES_IN = '7d'; // refresh token expiry
 
