@@ -3,6 +3,7 @@ const validateSignup = require('../utils/validation');
 const authRouter = express.Router();
 const bcrypt = require('bcrypt');
 const User  = require('../models/userSchema');
+const jwt = require('jsonwebtoken');
 
 
 authRouter.post('/auth/signup', async (req, res, next) => {
@@ -50,32 +51,43 @@ authRouter.post('/auth/createBulkUsers', async (req, res) => {
 });
 
 
-authRouter.post('/auth/login' , async (req , res) => {
-    const {email , password} = req.body;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const JWT_EXPIRES_IN = '15m'; // short expiry for demonstration
+const JWT_REFRESH_EXPIRES_IN = '7d'; // refresh token expiry
+
+// Helper to generate tokens
+function generateTokens(user) {
+    const payload = { id: user._id, email: user.email };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const refreshToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+    return { token, refreshToken };
+}
+
+authRouter.post('/auth/login', async (req, res) => {
+    const { email, password } = req.body;
     console.log('Request body:', req.body);
 
-    try
-    {
-    if (!email || !password) {
-        return res.status(400).json({ message: 'All fields are required' });
-    }
+    try {
+        if (!email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
 
-    const user = await User.findOne({ email : email });
+        const user = await User.findOne({ email: email });
 
-    if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-    }
-    
-    console.log('Stored hashed password:', user.password);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
 
-    const isPasswordValid = await user.validatePassword(password);
+        console.log('Stored hashed password:', user.password);
+
+        const isPasswordValid = await user.validatePassword(password);
 
         if (isPasswordValid) {
+            const { token, refreshToken } = generateTokens(user);
+            res.cookie("token", token, { httpOnly: true });
+            res.cookie("refreshToken", refreshToken, { httpOnly: true });
 
-            const token = await user.getJwtToken();
-            res.cookie("token", token );
-        
-            return res.status(200).json({ message: 'Login successful', user , token});
+            return res.status(200).json({ message: 'Login successful', user, token, refreshToken });
         } else {
             return res.status(401).json({ message: 'Invalid password' });
         }
@@ -83,7 +95,28 @@ authRouter.post('/auth/login' , async (req , res) => {
         console.error('Error during login:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
-})
+});
+
+// Endpoint to refresh token
+authRouter.post('/auth/refresh-token', async (req, res) => {
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'Refresh token required' });
+    }
+    try {
+        const decoded = jwt.verify(refreshToken, JWT_SECRET);
+        const user = await User.findById(decoded.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const { token: newToken, refreshToken: newRefreshToken } = generateTokens(user);
+        res.cookie("token", newToken, { httpOnly: true });
+        res.cookie("refreshToken", newRefreshToken, { httpOnly: true });
+        return res.status(200).json({ token: newToken, refreshToken: newRefreshToken });
+    } catch (error) {
+        return res.status(401).json({ message: 'Invalid or expired refresh token' });
+    }
+});
 
 authRouter.post('/auth/logout', (req, res) => {
     res.clearCookie('token');
